@@ -1,0 +1,97 @@
+version: '3.8'
+
+# Ce fichier dépend du module Core et ajoute les applications web vulnérables
+
+networks:
+  management_network:
+    external: true
+  corporate_lan:
+    external: true
+  dmz_network:
+    external: true
+
+services:
+  # === DVWA (Damn Vulnerable Web Application) ===
+  dvwa:
+    image: vulnerables/web-dvwa:latest
+    container_name: dvwa
+    hostname: dvwa
+    # Configuration des ressources pour réduire la consommation
+    deploy:
+      resources:
+        limits:
+          cpus: '0.3'
+          memory: 256M
+    networks:
+      dmz_network:
+        ipv4_address: 172.16.1.10
+    ports:
+      - "8080:80"
+
+  # === Application bancaire vulnérable (version légère) ===
+  vuln_bank_app:
+    image: php:7.4-apache-alpine
+    container_name: vuln_bank_app
+    hostname: bankapp
+    # Configuration des ressources pour réduire la consommation
+    deploy:
+      resources:
+        limits:
+          cpus: '0.3'
+          memory: 256M
+    volumes:
+      - ./vuln_bank_app:/var/www/html
+    networks:
+      dmz_network:
+        ipv4_address: 172.16.1.11
+    ports:
+      - "8082:80"
+    command: >
+      sh -c "docker-php-ext-install pdo pdo_mysql || true && 
+             apache2-foreground"
+
+  # === Serveur Web Vulnérable (version légère) ===
+  vuln_web_server:
+    image: nginx:alpine
+    container_name: vuln_web_server
+    hostname: webserver
+    # Configuration des ressources pour réduire la consommation
+    deploy:
+      resources:
+        limits:
+          cpus: '0.2'
+          memory: 128M
+    volumes:
+      - ./vuln_web_server:/usr/share/nginx/html
+    networks:
+      dmz_network:
+        ipv4_address: 172.16.1.12
+    ports:
+      - "8083:80"
+
+  # === Proxy Inversé (optionnel, pour tester les requêtes Web) ===
+  reverse_proxy:
+    image: traefik:v2.9-alpine
+    container_name: reverse_proxy
+    hostname: proxy
+    # Configuration des ressources pour réduire la consommation
+    deploy:
+      resources:
+        limits:
+          cpus: '0.2'
+          memory: 128M
+    command:
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+    ports:
+      - "8084:80"
+      - "8085:8080"  # Dashboard Traefik
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      dmz_network:
+        ipv4_address: 172.16.1.13
+      management_network:
+        ipv4_address: 10.10.10.13

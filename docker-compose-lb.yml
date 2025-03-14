@@ -1,0 +1,103 @@
+version: '3.8'
+
+# Ce fichier dépend du module Core et ajoute l'infrastructure d'équilibrage de charge
+
+networks:
+  management_network:
+    external: true
+  dmz_network:
+    external: true
+
+services:
+  # === HAProxy (Load Balancer) ===
+  haproxy:
+    image: haproxy:alpine
+    container_name: haproxy
+    hostname: haproxy
+    # Configuration des ressources pour réduire la consommation
+    deploy:
+      resources:
+        limits:
+          cpus: '0.3'
+          memory: 192M
+    ports:
+      - "80:80"      # HTTP
+      - "8404:8404"  # Stats
+    volumes:
+      - ./haproxy/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
+    networks:
+      dmz_network:
+        ipv4_address: 172.16.1.20
+      management_network:
+        ipv4_address: 10.10.10.20
+    cap_add:
+      - NET_ADMIN
+
+  # === Backend Web 1 (vulnérable) ===
+  backend1:
+    image: nginx:alpine
+    container_name: backend1
+    hostname: web1
+    # Configuration des ressources pour réduire la consommation
+    deploy:
+      resources:
+        limits:
+          cpus: '0.2'
+          memory: 128M
+    volumes:
+      - ./nginx_backend/html:/usr/share/nginx/html
+      - ./nginx_backend/backend1.conf:/etc/nginx/conf.d/default.conf
+    networks:
+      dmz_network:
+        ipv4_address: 172.16.1.21
+    environment:
+      - BACKEND_ID=1
+    command: >
+      sh -c "echo '{\"server\": \"backend1\", \"version\": \"1.0\"}' > /usr/share/nginx/html/info.json && 
+            echo '<html><body><h1>Backend 1</h1><p>This is a vulnerable backend server</p></body></html>' > /usr/share/nginx/html/index.html && 
+            nginx -g 'daemon off;'"
+
+  # === Backend Web 2 (vulnérable) ===
+  backend2:
+    image: nginx:alpine
+    container_name: backend2
+    hostname: web2
+    # Configuration des ressources pour réduire la consommation
+    deploy:
+      resources:
+        limits:
+          cpus: '0.2'
+          memory: 128M
+    volumes:
+      - ./nginx_backend/html:/usr/share/nginx/html
+      - ./nginx_backend/backend2.conf:/etc/nginx/conf.d/default.conf
+    networks:
+      dmz_network:
+        ipv4_address: 172.16.1.22
+    environment:
+      - BACKEND_ID=2
+    command: >
+      sh -c "echo '{\"server\": \"backend2\", \"version\": \"1.0\"}' > /usr/share/nginx/html/info.json && 
+            echo '<html><body><h1>Backend 2</h1><p>This is another vulnerable backend server</p></body></html>' > /usr/share/nginx/html/index.html && 
+            nginx -g 'daemon off;'"
+
+  # === API Backend (vulnérable mais léger) ===
+  api_backend:
+    image: python:3.9-alpine
+    container_name: api_backend
+    hostname: api
+    # Configuration des ressources pour réduire la consommation
+    deploy:
+      resources:
+        limits:
+          cpus: '0.3'
+          memory: 192M
+    volumes:
+      - ./api_backend:/app
+    networks:
+      dmz_network:
+        ipv4_address: 172.16.1.23
+    command: >
+      sh -c "pip install --no-cache-dir flask && 
+            echo 'from flask import Flask, request, jsonify; app = Flask(__name__); @app.route(\"/\"); def home(): return \"API Server\"; @app.route(\"/api/user\"); def user(): return jsonify({\"id\": 1, \"username\": \"admin\"}); @app.route(\"/api/ping\", methods=[\"POST\"]); def ping(): data = request.json; cmd = f\"ping -c 1 {data.get(\"host\")}\"; import os; return jsonify({\"output\": os.popen(cmd).read()}); app.run(host=\"0.0.0.0\", port=5000)' > /app/app.py && 
+            python /app/app.py"
