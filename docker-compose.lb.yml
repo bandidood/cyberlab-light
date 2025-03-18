@@ -4,9 +4,9 @@ version: '3.8'
 
 networks:
   management_network:
-    external: true
+     # external: true
   dmz_network:
-    external: true
+     # external: true
 
 services:
   # === HAProxy (Load Balancer) ===

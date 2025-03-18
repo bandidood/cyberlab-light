@@ -4,9 +4,9 @@ version: '3.8'
 
 networks:
   management_network:
-    external: true
+   # external: true
   corporate_lan:
-    external: true
+   # external: true
 
 services:
   # === Système de détection d'intrusion (Snort IDS) ===

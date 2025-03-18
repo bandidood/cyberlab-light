@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Serveur Web Vulnérable</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; padding: 20px; }
+        h1 { color: #333; }
+        .container { max-width: 800px; margin: 0 auto; }
+        .card { background: #f9f9f9; border: 1px solid #ddd; border-radius: 5px; padding: 15px; margin-bottom: 20px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Serveur Web Vulnérable</h1>
+        
+        <div class="card">
+            <h2>Recherche</h2>
+            <form action="search.php" method="GET">
+                <input type="text" name="q" placeholder="Rechercher...">
+                <button type="submit">Rechercher</button>
+            </form>
+        </div>
+        
+        <div class="card">
+            <h2>Upload de fichier</h2>
+            <form action="upload.php" method="POST" enctype="multipart/form-data">
+                <input type="file" name="file">
+                <button type="submit">Envoyer</button>
+            </form>
+        </div>
+        
+        <div class="card">
+            <h2>Pages disponibles</h2>
+            <ul>
+                <li><a href="about.html">À propos</a></li>
+                <li><a href="admin/">Administration</a></li>
+                <li><a href="backup/.htaccess">Configuration</a></li>
+            </ul>
+        </div>
+    </div>
+</body>
+</html>
