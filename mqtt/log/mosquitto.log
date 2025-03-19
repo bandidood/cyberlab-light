@@ -1,0 +1,9 @@
+1742401382: mosquitto version 2.0.21 starting
+1742401382: Config loaded from /mosquitto/config/mosquitto.conf.
+1742401382: Opening ipv4 listen socket on port 1883.
+1742401382: Opening ipv6 listen socket on port 1883.
+1742401382: mosquitto version 2.0.21 running
+1742401406: New connection from 192.168.98.3:60911 on port 1883.
+1742401406: New client connected from 192.168.98.3:60911 as auto-D3236645-E1EE-3FAF-0996-A2C96489162C (p2, c1, k60).
+1742401408: New connection from 192.168.98.3:52037 on port 1883.
+1742401408: New client connected from 192.168.98.3:52037 as auto-ED92EC01-45A9-6D41-D8B7-8E3F7E0FC435 (p2, c1, k60).

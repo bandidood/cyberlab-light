@@ -4,11 +4,14 @@ version: '3.8'
 
 networks:
   management_network:
-   # external: true
+    external: true
+    name: cyberlab-light_management_network
   corporate_lan:
-   # external: true
+    external: true
+    name: cyberlab-light_corporate_lan
   dmz_network:
-   # external: true
+    external: true
+    name: cyberlab-light_dmz_network
 
 services:
   # === DVWA (Damn Vulnerable Web Application) ===
@@ -23,14 +26,13 @@ services:
           cpus: '0.3'
           memory: 256M
     networks:
-      dmz_network:
-        ipv4_address: 172.16.1.10
+      - dmz_network
     ports:
       - "8080:80"
 
   # === Application bancaire vulnérable (version légère) ===
   vuln_bank_app:
-    image: php:7.4-apache-alpine
+    image: php:alpine
     container_name: vuln_bank_app
     hostname: bankapp
     # Configuration des ressources pour réduire la consommation
@@ -42,8 +44,7 @@ services:
     volumes:
       - ./vuln_bank_app:/var/www/html
     networks:
-      dmz_network:
-        ipv4_address: 172.16.1.11
+      - dmz_network
     ports:
       - "8082:80"
     command: >
@@ -64,14 +65,13 @@ services:
     volumes:
       - ./vuln_web_server:/usr/share/nginx/html
     networks:
-      dmz_network:
-        ipv4_address: 172.16.1.12
+      - dmz_network
     ports:
       - "8083:80"
 
   # === Proxy Inversé (optionnel, pour tester les requêtes Web) ===
   reverse_proxy:
-    image: traefik:v2.9-alpine
+    image: traefik:latest
     container_name: reverse_proxy
     hostname: proxy
     # Configuration des ressources pour réduire la consommation
@@ -91,7 +91,5 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
     networks:
-      dmz_network:
-        ipv4_address: 172.16.1.13
-      management_network:
-        ipv4_address: 10.10.10.13
+      - dmz_network
+      - management_network

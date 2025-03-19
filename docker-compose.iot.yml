@@ -4,11 +4,14 @@ version: '3.8'
 
 networks:
   management_network:
-   # external: true
+    external: true
+    name: cyberlab-light_management_network
   corporate_lan:
-   # external: true
+    external: true
+    name: cyberlab-light_corporate_lan
   iot_network:
-   # external: true
+    external: true
+    name: cyberlab-light_iot_network
 
 services:
   # === Broker MQTT (pour l'IoT) ===
@@ -30,8 +33,7 @@ services:
       - "1883:1883"  # MQTT
       - "9001:9001"  # MQTT over WebSockets
     networks:
-      iot_network:
-        ipv4_address: 192.168.2.2
+      - iot_network
 
   # === Thermostat IoT vulnérable (version légère) ===
   iot_thermostat:
@@ -49,8 +51,7 @@ services:
     ports:
       - "8086:5000"
     networks:
-      iot_network:
-        ipv4_address: 192.168.2.10
+      - iot_network
     command: >
       sh -c "pip install --no-cache-dir flask paho-mqtt && 
             python /app/thermostat.py"
@@ -69,8 +70,7 @@ services:
     ports:
       - "8087:8080"
     networks:
-      iot_network:
-        ipv4_address: 192.168.2.11
+      - iot_network
     command: >
       sh -c "apk add --no-cache python3 py3-pip && 
             pip3 install --no-cache-dir flask && 
@@ -91,10 +91,8 @@ services:
     volumes:
       - ./iot_devices/gateway:/app
     networks:
-      iot_network:
-        ipv4_address: 192.168.2.1
-      corporate_lan:
-        ipv4_address: 192.168.1.50
+      - iot_network
+      - corporate_lan
     command: >
       sh -c "pip install --no-cache-dir flask paho-mqtt requests && 
             python /app/gateway.py"

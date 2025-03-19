@@ -4,9 +4,11 @@ version: '3.8'
 
 networks:
   management_network:
-     # external: true
+    external: true
+    name: cyberlab-light_management_network
   dmz_network:
-     # external: true
+    external: true
+    name: cyberlab-light_dmz_network
 
 services:
   # === HAProxy (Load Balancer) ===
@@ -26,10 +28,8 @@ services:
     volumes:
       - ./haproxy/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
     networks:
-      dmz_network:
-        ipv4_address: 172.16.1.20
-      management_network:
-        ipv4_address: 10.10.10.20
+      - dmz_network
+      - management_network
     cap_add:
       - NET_ADMIN
 
@@ -48,8 +48,7 @@ services:
       - ./nginx_backend/html:/usr/share/nginx/html
       - ./nginx_backend/backend1.conf:/etc/nginx/conf.d/default.conf
     networks:
-      dmz_network:
-        ipv4_address: 172.16.1.21
+      - dmz_network
     environment:
       - BACKEND_ID=1
     command: >
@@ -72,8 +71,7 @@ services:
       - ./nginx_backend/html:/usr/share/nginx/html
       - ./nginx_backend/backend2.conf:/etc/nginx/conf.d/default.conf
     networks:
-      dmz_network:
-        ipv4_address: 172.16.1.22
+      - dmz_network
     environment:
       - BACKEND_ID=2
     command: >
@@ -95,8 +93,7 @@ services:
     volumes:
       - ./api_backend:/app
     networks:
-      dmz_network:
-        ipv4_address: 172.16.1.23
+      - dmz_network
     command: >
       sh -c "pip install --no-cache-dir flask && 
             echo 'from flask import Flask, request, jsonify; app = Flask(__name__); @app.route(\"/\"); def home(): return \"API Server\"; @app.route(\"/api/user\"); def user(): return jsonify({\"id\": 1, \"username\": \"admin\"}); @app.route(\"/api/ping\", methods=[\"POST\"]); def ping(): data = request.json; cmd = f\"ping -c 1 {data.get(\"host\")}\"; import os; return jsonify({\"output\": os.popen(cmd).read()}); app.run(host=\"0.0.0.0\", port=5000)' > /app/app.py && 

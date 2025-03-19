@@ -4,9 +4,11 @@ version: '3.8'
 
 networks:
   management_network:
-   # external: true
+    external: true
+    name: cyberlab-light_management_network
   corporate_lan:
-   # external: true
+    external: true
+    name: cyberlab-light_corporate_lan
 
 services:
   # === Système de détection d'intrusion (Snort IDS) ===
@@ -27,10 +29,8 @@ services:
       - NET_ADMIN
       - NET_RAW
     networks:
-      management_network:
-        ipv4_address: 10.10.10.30
-      corporate_lan:
-        ipv4_address: 192.168.1.30
+      - management_network
+      - corporate_lan
 
   # === Elasticsearch (version légère) ===
   elasticsearch:
@@ -50,8 +50,7 @@ services:
     volumes:
       - esdata:/usr/share/elasticsearch/data
     networks:
-      management_network:
-        ipv4_address: 10.10.10.31
+      - management_network
     ports:
       - "9200:9200"
 
@@ -69,8 +68,7 @@ services:
     environment:
       - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
     networks:
-      management_network:
-        ipv4_address: 10.10.10.32
+      - management_network
     ports:
       - "5601:5601"
     depends_on:
@@ -91,8 +89,7 @@ services:
       - ./filebeat/filebeat.yml:/usr/share/filebeat/filebeat.yml:ro
       - ./snort/log:/var/log/snort:ro
     networks:
-      management_network:
-        ipv4_address: 10.10.10.33
+      - management_network
     command: filebeat -e -strict.perms=false
     depends_on:
       - elasticsearch
