@@ -32,7 +32,7 @@ services:
 
   # === Application bancaire vulnérable (version légère) ===
   vuln_bank_app:
-    image: php:alpine
+    image: php:7.4-apache
     container_name: vuln_bank_app
     hostname: bankapp
     # Configuration des ressources pour réduire la consommation
@@ -48,8 +48,9 @@ services:
     ports:
       - "8082:80"
     command: >
-      sh -c "docker-php-ext-install pdo pdo_mysql || true && 
-             apache2-foreground"
+      bash -c "apt-get update && apt-get install -y libpq-dev && 
+            docker-php-ext-install pdo pdo_mysql || true && 
+            apache2-foreground"
 
   # === Serveur Web Vulnérable (version légère) ===
   vuln_web_server:

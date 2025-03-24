@@ -1,0 +1,9 @@
+#!/usr/bin/expect
+spawn vncpasswd
+expect "Password:"
+send "kalipass\r"
+expect "Verify:"
+send "kalipass\r"
+expect "Would you like to enter a view-only password (y/n)?"
+send "n\r"
+expect eof
