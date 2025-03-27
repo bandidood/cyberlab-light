@@ -2,6 +2,7 @@ from flask import Flask, request, jsonify
 import os
 import time
 import random
+
 try:
     import paho.mqtt.client as mqtt
     MQTT_AVAILABLE = True
@@ -10,8 +11,8 @@ except ImportError:
 
 app = Flask(__name__)
 devices = {
-    "thermostat": {"id": "therm001", "ip": "192.168.2.10", "type": "thermostat"},
-    "camera": {"id": "cam001", "ip": "192.168.2.11", "type": "camera"}
+    "thermostat": {"id": "therm001", "ip": "192.168.98.10", "type": "thermostat"},
+    "camera": {"id": "cam001", "ip": "192.168.98.11", "type": "camera"}
 }
 
 @app.route('/')
@@ -21,7 +22,7 @@ def index():
     <p>Connected devices: %s</p>
     <form action="/api/ping" method="POST">
         <label for="ip">IP to ping:</label>
-        <input type="text" id="ip" name="ip" value="192.168.2.10">
+        <input type="text" id="ip" name="ip" value="192.168.98.10">
         <button type="submit">Ping</button>
     </form>
     """ % len(devices)

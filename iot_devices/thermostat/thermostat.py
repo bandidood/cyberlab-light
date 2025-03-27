@@ -1,6 +1,7 @@
 from flask import Flask, request, jsonify
 import time
 import random
+
 try:
     import paho.mqtt.client as mqtt
     MQTT_AVAILABLE = True
@@ -52,9 +53,17 @@ def set_target():
     # Vulnerability: no authentication/authorization check
     data = request.json
     if data and 'temperature' in data:
-        target_temp = float(data.get('temperature', target_temp))
-        return jsonify({"status": "success", "target": target_temp})
-    return jsonify({"status": "error", "message": "Invalid request"}), 400
+        try:
+            temp = float(data.get('temperature', target_temp))
+            # Limiter la température à des valeurs raisonnables
+            if 0 <= temp <= 40:
+                target_temp = temp
+                return jsonify({"status": "success", "target": target_temp})
+            else:
+                return jsonify({"status": "error", "message": "Temperature must be between 0 and 40°C"}), 400
+        except (ValueError, TypeError):
+            return jsonify({"status": "error", "message": "Invalid temperature value"}), 400
+    return jsonify({"status": "error", "message": "Invalid request format"}), 400
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
