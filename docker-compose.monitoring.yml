@@ -29,37 +29,50 @@ services:
       - NET_ADMIN
       - NET_RAW
     networks:
-      - management_network
-      - corporate_lan
+      management_network:
+        ipv4_address: 10.99.10.30
+      corporate_lan:
+        ipv4_address: 192.168.99.30
+    restart: unless-stopped
 
   # === Elasticsearch (version légère) ===
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:7.17.0
     container_name: elasticsearch
     hostname: elasticsearch
-    # Configuration des ressources pour réduire la consommation
+    # Configuration des ressources 
     deploy:
       resources:
         limits:
-          cpus: '0.8'
-          memory: 1G
+          cpus: '1'
+          memory: 2G
     environment:
       - discovery.type=single-node
       - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
       - "xpack.security.enabled=false"
+      - "bootstrap.memory_lock=true"
     volumes:
       - esdata:/usr/share/elasticsearch/data
     networks:
-      - management_network
+      management_network:
+        ipv4_address: 10.99.10.31
     ports:
       - "9200:9200"
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 65536
+        hard: 65536
+    restart: unless-stopped
 
-  # === Kibana (optionnel, peut être désactivé pour économiser des ressources) ===
+  # === Kibana ===
   kibana:
     image: docker.elastic.co/kibana/kibana:7.17.0
     container_name: kibana
     hostname: kibana
-    # Configuration des ressources pour réduire la consommation
+    # Configuration des ressources
     deploy:
       resources:
         limits:
@@ -68,11 +81,13 @@ services:
     environment:
       - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
     networks:
-      - management_network
+      management_network:
+        ipv4_address: 10.99.10.32
     ports:
       - "5601:5601"
     depends_on:
       - elasticsearch
+    restart: unless-stopped
 
   # === Filebeat pour la collecte de logs (version légère) ===
   filebeat:
@@ -89,10 +104,12 @@ services:
       - ./filebeat/filebeat.yml:/usr/share/filebeat/filebeat.yml:ro
       - ./snort/log:/var/log/snort:ro
     networks:
-      - management_network
+      management_network:
+        ipv4_address: 10.99.10.33
     command: filebeat -e -strict.perms=false
     depends_on:
       - elasticsearch
+    restart: unless-stopped
 
 volumes:
   esdata:

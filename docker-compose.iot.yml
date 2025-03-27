@@ -33,7 +33,9 @@ services:
       - "1883:1883"  # MQTT
       - "9001:9001"  # MQTT over WebSockets
     networks:
-      - iot_network
+      iot_network:
+        ipv4_address: 192.168.98.2
+    restart: unless-stopped
 
   # === Thermostat IoT vulnérable (version légère) ===
   iot_thermostat:
@@ -51,10 +53,12 @@ services:
     ports:
       - "8086:5000"
     networks:
-      - iot_network
+      iot_network:
+        ipv4_address: 192.168.98.10
     command: >
       sh -c "pip install --no-cache-dir flask paho-mqtt && 
             python /app/thermostat.py"
+    restart: unless-stopped
 
   # === Caméra IoT simulée (version légère) ===
   iot_camera:
@@ -70,12 +74,14 @@ services:
     ports:
       - "8087:8080"
     networks:
-      - iot_network
+      iot_network:
+        ipv4_address: 192.168.98.11
     command: >
       sh -c "apk add --no-cache python3 py3-pip && 
             pip3 install --no-cache-dir flask && 
             echo 'from flask import Flask, Response; app = Flask(__name__); @app.route(\"/\"); def index(): return \"<h1>IoT Camera</h1><p>Status: ONLINE</p>\"; @app.route(\"/stream\"); def stream(): return Response(\"MJPEG Stream simulation\"); app.run(host=\"0.0.0.0\", port=8080)' > /app.py && 
             python3 /app.py"
+    restart: unless-stopped
 
   # === Passerelle IoT (connecte le réseau IoT au réseau corporatif) ===
   iot_gateway:
@@ -91,8 +97,11 @@ services:
     volumes:
       - ./iot_devices/gateway:/app
     networks:
-      - iot_network
-      - corporate_lan
+      iot_network:
+        ipv4_address: 192.168.98.50
+      corporate_lan:
+        ipv4_address: 192.168.99.50
     command: >
       sh -c "pip install --no-cache-dir flask paho-mqtt requests && 
             python /app/gateway.py"
+    restart: unless-stopped

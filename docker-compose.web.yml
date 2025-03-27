@@ -26,9 +26,11 @@ services:
           cpus: '0.3'
           memory: 256M
     networks:
-      - dmz_network
+      dmz_network:
+        ipv4_address: 172.16.99.10
     ports:
       - "8080:80"
+    restart: unless-stopped
 
   # === Application bancaire vulnérable (version légère) ===
   vuln_bank_app:
@@ -44,13 +46,15 @@ services:
     volumes:
       - ./vuln_bank_app:/var/www/html
     networks:
-      - dmz_network
+      dmz_network:
+        ipv4_address: 172.16.99.11
     ports:
       - "8082:80"
     command: >
       bash -c "apt-get update && apt-get install -y libpq-dev && 
             docker-php-ext-install pdo pdo_mysql || true && 
             apache2-foreground"
+    restart: unless-stopped
 
   # === Serveur Web Vulnérable (version légère) ===
   vuln_web_server:
@@ -66,9 +70,11 @@ services:
     volumes:
       - ./vuln_web_server:/usr/share/nginx/html
     networks:
-      - dmz_network
+      dmz_network:
+        ipv4_address: 172.16.99.12
     ports:
       - "8083:80"
+    restart: unless-stopped
 
   # === Proxy Inversé (optionnel, pour tester les requêtes Web) ===
   reverse_proxy:
@@ -92,5 +98,8 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
     networks:
-      - dmz_network
-      - management_network
+      dmz_network:
+        ipv4_address: 172.16.99.13
+      management_network:
+        ipv4_address: 10.99.10.30
+    restart: unless-stopped

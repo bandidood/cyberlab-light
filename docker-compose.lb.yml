@@ -28,10 +28,13 @@ services:
     volumes:
       - ./haproxy/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
     networks:
-      - dmz_network
-      - management_network
+      dmz_network:
+        ipv4_address: 172.16.99.20
+      management_network:
+        ipv4_address: 10.99.10.20
     cap_add:
       - NET_ADMIN
+    restart: unless-stopped
 
   # === Backend Web 1 (vulnérable) ===
   backend1:
@@ -48,13 +51,15 @@ services:
       - ./nginx_backend/html:/usr/share/nginx/html
       - ./nginx_backend/backend1.conf:/etc/nginx/conf.d/default.conf
     networks:
-      - dmz_network
+      dmz_network:
+        ipv4_address: 172.16.99.21
     environment:
       - BACKEND_ID=1
     command: >
       sh -c "echo '{\"server\": \"backend1\", \"version\": \"1.0\"}' > /usr/share/nginx/html/info.json && 
             echo '<html><body><h1>Backend 1</h1><p>This is a vulnerable backend server</p></body></html>' > /usr/share/nginx/html/index.html && 
             nginx -g 'daemon off;'"
+    restart: unless-stopped
 
   # === Backend Web 2 (vulnérable) ===
   backend2:
@@ -71,15 +76,17 @@ services:
       - ./nginx_backend/html:/usr/share/nginx/html
       - ./nginx_backend/backend2.conf:/etc/nginx/conf.d/default.conf
     networks:
-      - dmz_network
+      dmz_network:
+        ipv4_address: 172.16.99.22
     environment:
       - BACKEND_ID=2
     command: >
       sh -c "echo '{\"server\": \"backend2\", \"version\": \"1.0\"}' > /usr/share/nginx/html/info.json && 
             echo '<html><body><h1>Backend 2</h1><p>This is another vulnerable backend server</p></body></html>' > /usr/share/nginx/html/index.html && 
             nginx -g 'daemon off;'"
+    restart: unless-stopped
 
-  # === API Backend (vulnérable mais léger) ===
+  # === API Backend (vulnérable) ===
   api_backend:
     image: python:3.9-alpine
     container_name: api_backend
@@ -93,8 +100,10 @@ services:
     volumes:
       - ./api_backend:/app
     networks:
-      - dmz_network
+      dmz_network:
+        ipv4_address: 172.16.99.23
     command: >
       sh -c "pip install --no-cache-dir flask && 
-            echo 'from flask import Flask, request, jsonify; app = Flask(__name__); @app.route(\"/\"); def home(): return \"API Server\"; @app.route(\"/api/user\"); def user(): return jsonify({\"id\": 1, \"username\": \"admin\"}); @app.route(\"/api/ping\", methods=[\"POST\"]); def ping(): data = request.json; cmd = f\"ping -c 1 {data.get(\"host\")}\"; import os; return jsonify({\"output\": os.popen(cmd).read()}); app.run(host=\"0.0.0.0\", port=5000)' > /app/app.py && 
-            python /app/app.py"
+            cd /app && 
+            python app.py"
+    restart: unless-stopped
