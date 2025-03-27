@@ -120,6 +120,115 @@ Ce guide aborde les problèmes courants que vous pourriez rencontrer lors de l'u
    docker-compose up -d kali_linux
    ```
 
+### Kali Linux inaccessible
+
+Le service Kali Linux est particulièrement problématique car il utilise NoVNC pour exposer une interface graphique.
+
+1. **Vérifiez les logs de Kali Linux** :
+   ```bash
+   docker logs kali_linux
+   ```
+   Recherchez des erreurs comme "failed to bind to port 6080" ou des problèmes avec X11/VNC.
+
+2. **Vérifiez si les processus NoVNC et VNC sont actifs** :
+   ```bash
+   docker exec -it kali_linux ps aux | grep -E "vnc|novnc"
+   ```
+
+3. **Solution possible** : Redémarrer explicitement les services VNC et NoVNC dans le conteneur :
+   ```bash
+   docker exec -it kali_linux bash -c "killall x11vnc novnc"
+   docker exec -it kali_linux bash -c "Xvfb :1 -screen 0 1280x800x16 &"
+   docker exec -it kali_linux bash -c "DISPLAY=:1 startxfce4 &"
+   docker exec -it kali_linux bash -c "x11vnc -display :1 -rfbport 5901 -passwd kali -forever -create -bg"
+   docker exec -it kali_linux bash -c "/usr/share/novnc/utils/launch.sh --vnc localhost:5901 --listen 6080 &"
+   ```
+
+### Vérification de la configuration réseau
+
+1. **Vérifiez que les réseaux Docker sont correctement créés** :
+   ```bash
+   docker network ls | grep cyberlab
+   ```
+
+2. **Vérifiez les plages d'adresses IP et connexions** :
+   ```bash
+   docker network inspect cyberlab-light_management_network
+   ```
+
+3. **Vérifiez les mappings de ports** :
+   ```bash
+   docker ps --format "{{.Names}}: {{.Ports}}"
+   ```
+
+### Vérification des services individuels
+
+Pour chaque service inaccessible :
+
+1. **Vérifiez que le conteneur est en cours d'exécution** :
+   ```bash
+   docker ps | grep nom_du_service
+   ```
+
+2. **Vérifiez l'état du service à l'intérieur du conteneur** :
+   ```bash
+   # Pour les services web
+   docker exec -it nom_du_service curl localhost:80
+   ```
+
+3. **Vérifiez l'accès depuis un autre conteneur** (comme Kali Linux) :
+   ```bash
+   docker exec -it kali_linux curl http://adresse_ip_du_service:port
+   ```
+
+### Problèmes potentiels de pare-feu
+
+Si certains services sont inaccessibles depuis l'hôte mais fonctionnent entre conteneurs :
+
+1. **Vérifiez les pare-feu locaux** (iptables, firewalld, ufw) :
+   ```bash
+   # Pour UFW
+   sudo ufw status
+   
+   # Pour iptables
+   sudo iptables -L
+   ```
+
+2. **Désactivez temporairement le pare-feu** (pour test uniquement) :
+   ```bash
+   sudo ufw disable  # Ubuntu/Debian
+   sudo systemctl stop firewalld  # RedHat/CentOS
+   ```
+
+### Solution radicale : reconstruire l'environnement
+
+Si les solutions ci-dessus ne fonctionnent pas, vous pouvez essayer une approche radicale :
+
+```bash
+# Arrêter tous les conteneurs
+./stop-all.sh
+
+# Supprimer tous les conteneurs, réseaux et volumes associés
+docker-compose down -v
+docker-compose -f docker-compose.web.yml down -v
+docker-compose -f docker-compose.iot.yml down -v
+docker-compose -f docker-compose.lb.yml down -v
+docker-compose -f docker-compose.monitoring.yml down -v
+
+# Nettoyer l'environnement Docker
+docker system prune -f
+
+# Redémarrer le service Docker
+sudo systemctl restart docker
+
+# Relancer le script de configuration
+./setup.sh
+
+# Démarrer les modules nécessaires
+./start-core.sh
+./start-web-scenario.sh
+```
+
 ### Problème: "Elasticsearch ne démarre pas"
 
 **Problème**: Elasticsearch nécessite plus de mémoire ou a des problèmes de permissions.
