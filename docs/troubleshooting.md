@@ -67,10 +67,10 @@ Ce guide aborde les problèmes courants que vous pourriez rencontrer lors de l'u
    ```
 2. Créez manuellement les réseaux manquants:
    ```bash
-   docker network create --subnet=10.10.10.0/24 management_network
-   docker network create --subnet=192.168.1.0/24 corporate_lan
-   docker network create --subnet=172.16.1.0/24 dmz_network
-   docker network create --subnet=192.168.2.0/24 iot_network
+   docker network create --subnet=10.99.10.0/24 cyberlab-light_management_network
+   docker network create --subnet=192.168.99.0/24 cyberlab-light_corporate_lan
+   docker network create --subnet=172.16.99.0/24 cyberlab-light_dmz_network
+   docker network create --subnet=192.168.98.0/24 cyberlab-light_iot_network
    ```
 
 ### Problème: "Les conteneurs ne peuvent pas communiquer entre eux"
@@ -80,7 +80,7 @@ Ce guide aborde les problèmes courants que vous pourriez rencontrer lors de l'u
 **Solutions**:
 1. Vérifiez que tous les conteneurs sont sur les bons réseaux:
    ```bash
-   docker network inspect management_network
+   docker network inspect cyberlab-light_management_network
    ```
 2. Testez la connectivité à partir de Kali Linux:
    ```bash
@@ -114,6 +114,11 @@ Ce guide aborde les problèmes courants que vous pourriez rencontrer lors de l'u
    ```bash
    docker exec -it kali_linux ps aux | grep novnc
    ```
+4. Si le problème persiste, reconstruisez le conteneur:
+   ```bash
+   docker-compose rm -f kali_linux
+   docker-compose up -d kali_linux
+   ```
 
 ### Problème: "Elasticsearch ne démarre pas"
 
@@ -124,14 +129,18 @@ Ce guide aborde les problèmes courants que vous pourriez rencontrer lors de l'u
    ```bash
    docker logs elasticsearch
    ```
-2. Augmentez temporairement les limites de mémoire:
-   ```yaml
-   environment:
-     - "ES_JAVA_OPTS=-Xms256m -Xmx256m"  # Réduire davantage si nécessaire
-   ```
-3. Si vous êtes sur Linux, vérifiez le paramètre vm.max_map_count:
+2. Sur Linux, augmentez la valeur du paramètre vm.max_map_count:
    ```bash
    sudo sysctl -w vm.max_map_count=262144
+   ```
+3. Si le problème est lié à la mémoire, modifiez les options JVM dans docker-compose.monitoring.yml:
+   ```yaml
+   environment:
+     - "ES_JAVA_OPTS=-Xms256m -Xmx256m"
+   ```
+4. Vérifiez les permissions du volume:
+   ```bash
+   sudo chown -R 1000:1000 ./elasticsearch/data
    ```
 
 ### Problème: "Les applications web ne fonctionnent pas correctement"
@@ -146,6 +155,7 @@ Ce guide aborde les problèmes courants que vous pourriez rencontrer lors de l'u
 2. Pour les applications PHP personnalisées, vérifiez les permissions:
    ```bash
    docker exec -it vuln_bank_app ls -la /var/www/html
+   docker exec -it vuln_bank_app chmod -R 755 /var/www/html
    ```
 3. Consultez les logs du serveur web:
    ```bash
@@ -169,6 +179,10 @@ Ce guide aborde les problèmes courants que vous pourriez rencontrer lors de l'u
    ```bash
    docker exec -it kali_linux apt-get update && apt-get install -y mosquitto-clients
    docker exec -it kali_linux mosquitto_sub -h mqtt_broker -t "#" -v
+   ```
+4. Redémarrez le broker:
+   ```bash
+   docker restart mqtt_broker
    ```
 
 ## Problèmes de performances
@@ -207,8 +221,12 @@ Ce guide aborde les problèmes courants que vous pourriez rencontrer lors de l'u
    docker images
    docker rmi image_id_1 image_id_2
    ```
+3. Vérifiez l'espace disque utilisé par Docker:
+   ```bash
+   docker system df
+   ```
 
-## Problèmes courants dans les scénarios
+## Problèmes spécifiques aux scénarios
 
 ### Problème: "Les exploits ne fonctionnent pas dans DVWA"
 
@@ -219,6 +237,9 @@ Ce guide aborde les problèmes courants que vous pourriez rencontrer lors de l'u
    - Accédez à http://localhost:8080
    - Allez dans DVWA Security
    - Sélectionnez "low" et cliquez sur "Submit"
+2. Si la base de données n'est pas initialisée, suivez ces étapes:
+   - Accédez à http://localhost:8080/setup.php
+   - Cliquez sur "Create / Reset Database"
 
 ### Problème: "Snort ne détecte pas les attaques"
 
@@ -236,6 +257,10 @@ Ce guide aborde les problèmes courants que vous pourriez rencontrer lors de l'u
 3. Redémarrez Snort après avoir modifié les règles:
    ```bash
    docker restart snort
+   ```
+4. Vérifiez que les réseaux sont bien connectés à Snort:
+   ```bash
+   docker inspect snort | grep -A 10 "Networks"
    ```
 
 ### Problème: "Pas de données dans Kibana"
@@ -255,6 +280,10 @@ Ce guide aborde les problèmes courants que vous pourriez rencontrer lors de l'u
    - Accédez à http://localhost:5601
    - Allez dans Management > Stack Management > Index Patterns
    - Créez un pattern "filebeat-*"
+4. Vérifiez la connectivité entre Filebeat et Elasticsearch:
+   ```bash
+   docker exec -it filebeat ping elasticsearch
+   ```
 
 ## Résolution des problèmes de scripts
 
@@ -278,6 +307,52 @@ chmod +x *.sh
    bash -x setup.sh
    ```
 3. Essayez d'exécuter manuellement les commandes dans le script
+4. Vérifiez les permissions des répertoires:
+   ```bash
+   ls -la
+   ```
+
+## Problèmes de conteneurs spécifiques
+
+### HAProxy
+
+**Problème**: HAProxy ne distribue pas correctement le trafic
+
+**Solutions**:
+1. Vérifiez la configuration:
+   ```bash
+   docker exec -it haproxy cat /usr/local/etc/haproxy/haproxy.cfg
+   ```
+2. Vérifiez l'état des backend:
+   ```bash
+   docker exec -it haproxy curl -s http://localhost:8404/stats
+   ```
+3. Redémarrez HAProxy:
+   ```bash
+   docker restart haproxy
+   ```
+
+### API Backend
+
+**Problème**: L'API backend n'est pas accessible ou renvoie des erreurs
+
+**Solutions**:
+1. Vérifiez que le conteneur est en cours d'exécution:
+   ```bash
+   docker ps | grep api_backend
+   ```
+2. Vérifiez les logs du conteneur:
+   ```bash
+   docker logs api_backend
+   ```
+3. Testez l'API directement:
+   ```bash
+   curl http://172.16.99.23:5000/
+   ```
+4. Vérifiez que le fichier app.py est correctement installé:
+   ```bash
+   docker exec -it api_backend ls -la /app
+   ```
 
 ## Autres problèmes
 
@@ -289,6 +364,9 @@ chmod +x *.sh
 ```bash
 # Forcer l'arrêt
 docker-compose down -v --remove-orphans
+
+# Si cela ne fonctionne pas
+docker rm -f $(docker ps -a -q --filter "name=cyberlab")
 ```
 
 ### Problème: "Perte de données entre les redémarrages"
@@ -307,7 +385,27 @@ volumes:
   db_data:
 ```
 
-## Maintenir à jour le laboratoire
+### Problème: "Ports NoVNC de Kali inaccessibles"
+
+**Problème**: L'interface NoVNC ne répond pas sur le port configuré.
+
+**Solutions**:
+1. Vérifiez si les processus VNC et NoVNC fonctionnent:
+   ```bash
+   docker exec -it kali_linux ps aux | grep -E "vnc|novnc"
+   ```
+2. Vérifiez les logs pour les erreurs:
+   ```bash
+   docker logs kali_linux | grep -i error
+   ```
+3. Redémarrez les services VNC manuellement:
+   ```bash
+   docker exec -it kali_linux bash -c "x11vnc -display :1 -rfbport 5901 -usepw -forever -create -bg && /usr/share/novnc/utils/launch.sh --vnc localhost:5901 --listen 6080"
+   ```
+
+## Maintenance et mise à jour
+
+### Maintenir à jour le laboratoire
 
 Pour maintenir le laboratoire à jour:
 
@@ -324,6 +422,44 @@ Pour maintenir le laboratoire à jour:
 3. Mettez à jour les images Docker:
    ```bash
    docker-compose pull
+   ```
+
+### Sauvegarde et restauration
+
+Pour sauvegarder une configuration fonctionnelle:
+
+1. Sauvegardez les fichiers de configuration:
+   ```bash
+   tar -czvf cyberlab-config-backup.tar.gz *.yml *.sh */config/* snort/rules/*
+   ```
+
+2. Pour restaurer:
+   ```bash
+   tar -xzvf cyberlab-config-backup.tar.gz
+   ```
+
+## Contacter le support
+
+Si vous rencontrez un problème qui n'est pas couvert par ce guide:
+
+1. Consultez les issues existantes sur le dépôt GitHub
+2. Ouvrez une nouvelle issue avec:
+   - Une description détaillée du problème
+   - Les logs pertinents
+   - Les étapes pour reproduire le problème
+   - Votre environnement (OS, version Docker, etc.)
+
+## Astuces pour un dépannage efficace
+
+1. **Approche systématique**: Commencez par les problèmes les plus simples (connexion réseau, services actifs)
+2. **Collecte d'informations**: Rassemblez les logs et les informations système avant de chercher des solutions
+3. **Isolation**: Essayez de démarrer les modules un par un pour identifier celui qui pose problème
+4. **Reconstruction propre**: En cas de doute, arrêtez tout, nettoyez et recommencez:
+   ```bash
+   ./stop-all.sh
+   docker system prune
+   ./setup.sh
+   ./start-core.sh
    ```
 
 ---

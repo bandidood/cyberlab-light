@@ -8,7 +8,7 @@ Ce document contient toutes les informations d'accès aux différents services e
 |---------|-----|--------------|-------------|
 | **Kali Linux (GUI)** | http://localhost:6080 | root / kali | Interface NoVNC |
 | **Kali Linux (SSH)** | localhost:2222 | root / kali | `ssh root@localhost -p 2222` |
-| **Client Windows** | http://192.168.1.10 | N/A | Simulation d'un client Windows |
+| **Client Windows** | http://192.168.99.20 | N/A | Simulation d'un client Windows |
 
 ## Module Web
 
@@ -22,9 +22,9 @@ Ce document contient toutes les informations d'accès aux différents services e
 
 ### Exploitation des vulnérabilités Web
 
-Pour l'application bancaire, essayez:
-- Nom d'utilisateur: `admin' --`
-- Mot de passe: `anything`
+Pour l'application bancaire, essayez :
+- Nom d'utilisateur : `admin' --`
+- Mot de passe : `anything`
 
 ## Module IoT
 
@@ -37,8 +37,8 @@ Pour l'application bancaire, essayez:
 
 ### Exploitation des vulnérabilités IoT
 
-Pour le thermostat IoT:
-```
+Pour le thermostat IoT :
+```bash
 # Obtenir la température actuelle
 curl http://localhost:8086/api/temperature
 
@@ -46,8 +46,8 @@ curl http://localhost:8086/api/temperature
 curl -X POST http://localhost:8086/api/target -H "Content-Type: application/json" -d '{"temperature": 30.0}'
 ```
 
-Pour le MQTT:
-```
+Pour le MQTT :
+```bash
 # S'abonner à tous les topics
 mosquitto_sub -h localhost -p 1883 -t "#"
 
@@ -65,14 +65,14 @@ mosquitto_pub -h localhost -p 1883 -t "home/thermostat/command" -m '{"action":"s
 
 ### Exploitation des vulnérabilités Load Balancing
 
-Pour l'API vulnérable:
-```
+Pour l'API vulnérable :
+```bash
 # Injection de commande via l'API
 curl -X POST http://localhost/api/ping -H "Content-Type: application/json" -d '{"host":"localhost; cat /etc/passwd"}'
 ```
 
-Pour tester l'équilibrage:
-```
+Pour tester l'équilibrage :
+```bash
 # Connexions répétées pour voir l'équilibrage round-robin
 for i in {1..10}; do curl -s http://localhost/ | grep "Backend"; done
 ```
@@ -86,46 +86,46 @@ for i in {1..10}; do curl -s http://localhost/ | grep "Backend"; done
 
 ### Utilisation des outils de monitoring
 
-Création d'une règle Snort personnalisée:
+Création d'une règle Snort personnalisée :
 1. Ajouter votre règle dans `./snort/rules/local.rules`
-2. Redémarrer le conteneur Snort: `docker restart snort`
+2. Redémarrer le conteneur Snort : `docker restart snort`
 
-Visualisation des logs:
-1. Accéder à Kibana: http://localhost:5601
-2. Configurer un index pattern: `filebeat-*`
+Visualisation des logs :
+1. Accéder à Kibana : http://localhost:5601
+2. Configurer un index pattern : `filebeat-*`
 3. Accéder à "Discover" pour voir les logs
 
 ## Cartographie des réseaux
 
 | Réseau | Plage d'adresses | Composants |
 |--------|------------------|------------|
-| **Management** | 10.10.10.0/24 | Kali Linux, Monitoring |
-| **Corporate** | 192.168.1.0/24 | Client Windows, Passerelle IoT |
-| **DMZ** | 172.16.1.0/24 | Applications Web, Load Balancers |
-| **IoT** | 192.168.2.0/24 | MQTT, Thermostat, Caméra |
+| **Management** | 10.99.10.0/24 | Kali Linux, Monitoring |
+| **Corporate** | 192.168.99.0/24 | Client Windows, Passerelle IoT |
+| **DMZ** | 172.16.99.0/24 | Applications Web, Load Balancers |
+| **IoT** | 192.168.98.0/24 | MQTT, Thermostat, Caméra |
 
 ## Accès aux services depuis Kali Linux
 
-À l'intérieur du conteneur Kali Linux, vous pouvez accéder à tous les services directement via leurs adresses IP internes:
+À l'intérieur du conteneur Kali Linux, vous pouvez accéder à tous les services directement via leurs adresses IP internes :
 
 ```bash
 # Accéder à Kali Linux
 docker exec -it kali_linux bash
 
 # Scanner un réseau (ex: DMZ)
-nmap -sV 172.16.1.0/24
+nmap -sV 172.16.99.0/24
 
 # Accéder à l'application bancaire
-curl http://172.16.1.11/
+curl http://172.16.99.11/
 
 # Tester le MQTT
 apt update && apt install -y mosquitto-clients
-mosquitto_sub -h 192.168.2.2 -t "#"
+mosquitto_sub -h 192.168.98.2 -t "#"
 ```
 
 ## Accès aux conteneurs en ligne de commande
 
-Pour accéder directement aux conteneurs:
+Pour accéder directement aux conteneurs :
 
 ```bash
 # Kali Linux
@@ -146,24 +146,24 @@ docker exec -it iot_thermostat sh
 
 ## Résolution de problèmes d'accès
 
-Si vous ne pouvez pas accéder à un service:
+Si vous ne pouvez pas accéder à un service :
 
-1. Vérifiez que le conteneur est en cours d'exécution:
+1. Vérifiez que le conteneur est en cours d'exécution :
    ```bash
    docker ps | grep nom_du_service
    ```
 
-2. Vérifiez les logs du conteneur:
+2. Vérifiez les logs du conteneur :
    ```bash
    docker logs nom_du_service
    ```
 
-3. Vérifiez que le port est correctement exposé:
+3. Vérifiez que le port est correctement exposé :
    ```bash
    docker port nom_du_service
    ```
 
-4. Vérifiez la connexion réseau interne:
+4. Vérifiez la connexion réseau interne :
    ```bash
    docker exec -it kali_linux ping adresse_ip_du_service
    ```
@@ -173,3 +173,4 @@ Si vous ne pouvez pas accéder à un service:
 - Les mots de passe utilisés sont volontairement simples pour faciliter l'apprentissage
 - Certains services n'ont pas d'authentification par conception (pour illustrer les vulnérabilités)
 - Tous les services fonctionnent dans un environnement isolé Docker et ne sont pas exposés à Internet
+- Pour des raisons de sécurité, n'exécutez pas ce laboratoire sur un système de production ou exposé à Internet
