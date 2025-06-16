@@ -56,7 +56,7 @@ Surveillance et détection d'intrusions :
 
 ```bash
 # Cloner le dépôt
-git clone https://github.com/votre-username/cyberlab-light.git
+git clone https://github.com/bandidood/cyberlab-light.git
 cd cyberlab-light
 
 # Configuration initiale
